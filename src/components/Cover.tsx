@@ -210,6 +210,10 @@ export function Cover({
               Понятным языком. Без воды. С кодом, который запускается.
             </p>
 
+            <p className="mt-5 text-sm text-ink-400">
+              Автор: <span className="text-paper font-semibold">Кулханов Вепа Муратбердыевич</span>
+            </p>
+
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => onOpen(nextChapter?.id ?? "ch01")}
@@ -454,7 +458,7 @@ export function Cover({
           <div className="flex items-center gap-2.5">
             <span className="w-7 h-7 grid place-items-center rounded-md bg-gold-500 text-ink-950 font-mono font-bold text-xs">++</span>
             <span className="font-mono text-xs text-ink-400">
-              «C++: от ученика до гуру» · написано и свёрстано как одна книга
+              «C++: от ученика до гуру» · автор <span className="text-paper">Кулханов В. М.</span>
             </span>
           </div>
           <button

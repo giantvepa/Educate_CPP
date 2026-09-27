@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аттестация — веб-интерфейс</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0c1522;
+            color: #ece7da;
+            padding: 2rem;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #f6bc4f;
+        }
+        .subtitle {
+            color: #7d97ba;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .card {
+            background: #152236;
+            border: 1px solid #2a405f;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #a9bcd6;
+            margin-bottom: 0.3rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.6rem;
+            background: #101b2c;
+            border: 1px solid #2a405f;
+            border-radius: 6px;
+            color: #ece7da;
+            font-size: 0.95rem;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #f6bc4f;
+        }
+        button {
+            background: #f6bc4f;
+            color: #0c1522;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        button:hover { background: #eda32f; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.8rem;
+            border-bottom: 1px solid #2a405f;
+        }
+        th {
+            background: #101b2c;
+            color: #f6bc4f;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tr:hover { background: #1d2f49; }
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-active { background: #1fbfa8; color: #0c1522; }
+        .status-draft { background: #54719a; color: #ece7da; }
+        .status-done { background: #7d97ba; color: #0c1522; }
+        .delete-btn {
+            background: transparent;
+            color: #f27059;
+            border: 1px solid #f27059;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.85rem;
+        }
+        .delete-btn:hover { background: #f27059; color: #0c1522; }
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: #7d97ba;
+        }
+        .error {
+            background: #f2705920;
+            border: 1px solid #f27059;
+            color: #f27059;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Аттестация сотрудников</h1>
+        <p class="subtitle">Веб-интерфейс · REST API на C++ · глава 18 книги</p>
+
+        <div id="error" class="error" style="display:none;"></div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 1rem; color: #3fd8c2;">Добавить сотрудника</h2>
+            <form id="addForm">
+                <div class="form-grid">
+                    <div>
+                        <label for="name">ФИО</label>
+                        <input type="text" id="name" required placeholder="Иванов Иван Иванович">
+                    </div>
+                    <div>
+                        <label for="post">Должность</label>
+                        <input type="text" id="post" required placeholder="ведущий инженер">
+                    </div>
+                    <div>
+                        <label for="dept">Отдел</label>
+                        <select id="dept">
+                            <option value="1">Разработка</option>
+                            <option value="2">Тестирование</option>
+                            <option value="3">Внедрение</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit">Добавить</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 1rem; color: #3fd8c2;">Список сотрудников</h2>
+            <div id="tableContainer">
+                <div class="empty">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://localhost:8080/api";
+
+        function showError(msg) {
+            const el = document.getElementById("error");
+            el.textContent = msg;
+            el.style.display = "block";
+            setTimeout(() => el.style.display = "none", 5000);
+        }
+
+        async function loadEmployees() {
+            try {
+                const res = await fetch(API + "/employees");
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const rows = await res.json();
+
+                const container = document.getElementById("tableContainer");
+                if (rows.length === 0) {
+                    container.innerHTML = '<div class="empty">Нет сотрудников</div>';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ФИО</th>
+                                <th>Должность</th>
+                                <th>Отдел</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(e => `
+                                <tr>
+                                    <td>${e.id}</td>
+                                    <td>${e.name}</td>
+                                    <td>${e.post}</td>
+                                    <td>${e.dept}</td>
+                                    <td>
+                                        <button class="delete-btn" onclick="deleteEmployee(${e.id})">
+                                            Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join("")}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                showError("Не удалось загрузить: " + err.message);
+            }
+        }
+
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById("name").value,
+                post: document.getElementById("post").value,
+                dept: parseInt(document.getElementById("dept").value)
+            };
+
+            try {
+                const res = await fetch(API + "/employees", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const result = await res.json();
+                console.log("Создан:", result);
+                e.target.reset();
+                loadEmployees();
+            } catch (err) {
+                showError("Не удалось добавить: " + err.message);
+            }
+        });
+
+        async function deleteEmployee(id) {
+            if (!confirm("Удалить сотрудника?")) return;
+            try {
+                const res = await fetch(API + "/employees/" + id, {method: "DELETE"});
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                loadEmployees();
+            } catch (err) {
+                showError("Не удалось удалить: " + err.message);
+            }
+        }
+
+        loadEmployees();
+    </script>
+</body>
+</html>

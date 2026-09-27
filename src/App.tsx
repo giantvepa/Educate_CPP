@@ -193,7 +193,7 @@ export default function App() {
 
           <footer className="border-t border-ink-800">
             <div className="max-w-[1500px] mx-auto px-6 py-6 flex flex-wrap gap-4 items-center justify-between font-mono text-[11px] text-ink-500">
-              <span>«C++: от ученика до гуру» · сквозной проект «Аттестация»</span>
+              <span>«C++: от ученика до гуру» · Кулханов В. М. · проект «Аттестация»</span>
               <span>
                 <kbd>←</kbd> <kbd>→</kbd> — листать главы · прогресс: {readSet.size}/{totalChapters}
               </span>
